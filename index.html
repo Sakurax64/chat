@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>chat</title>
+
+	<style>
+		* {
+			padding: 0;
+			margin: 0;
+			background-color: #211a27;
+			color: #ffffff;
+			font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+		}
+
+		.flex-container {
+			display: flex;
+			flex-direction: column;
+			flex-wrap: nowrap;
+			justify-content: center;
+			align-items: center;
+			align-content: center;
+		}
+
+		.flexbox-item {
+			flex: 1 0 auto;
+		}
+
+		.chat-history {
+			margin-top: 1vw;
+			margin-left: 1vw;
+			flex-grow: 1;
+			flex-shrink: 0;
+			flex-basis: auto;
+			height: 93vh;
+			overflow: scroll;
+			width: 99vw;
+		}
+
+		.text-input {
+			flex-grow: 0;
+			flex-shrink: 0;
+			flex-basis: auto;
+
+			width: 90vw;
+			height: 32px;
+			border-radius: 8px;
+			border: 1.5px solid #fff;
+			outline: none;
+		}
+
+		.username-input {
+			flex-grow: 0;
+			flex-shrink: 0;
+			flex-basis: auto;
+
+			width: 5vw;
+			height: 32px;
+			border-radius: 8px;
+			border: 1.5px solid #fff;
+			outline: none;
+		}
+
+		i {
+			font-style: normal;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="flex-container">
+		<div class="chat-history flex-item" id="messages">
+		</div>
+
+		<div class="flex-item">
+			<input type="text" id="username-input" class="username-input" placeholder=" username">
+			<input type="text" id="text-input" class="text-input" placeholder=" message">
+		</div>
+	</div>
+
+	<script>
+		const textInput = document.getElementById("text-input");
+		const chatHistory = document.getElementById("messages");
+
+		const messageStream = new EventSource("/messageStream");
+
+		messageStream.onmessage = (event) => {
+			const msg = JSON.parse(event.data);
+			displayMessage(msg.user, msg.text);
+		}
+
+		textInput.addEventListener("keydown", (e) => {
+			const username = document.getElementById("username-input").value;
+			if (e.key == "Enter" && textInput.value != "") {
+				sendMessage({ user: username, message: textInput.value })
+				textInput.value = "";
+			}
+		});
+
+		function sendMessage(content) {
+			axios.post("/sendMessage", {
+				user: content.user,
+				message: content.message
+			})
+		}
+
+		function displayMessage(name, content) {
+			chatHistory.innerHTML += `<p>${new Date().toLocaleString()} >> <i style="color: ${colorize(name)}">${name}</i>: ${content}</p>`;
+		}
+
+		function colorize(name) {
+			let hash = 0;
+
+			for (let i = 0; i < name.length; i++) {
+				hash = name.charCodeAt(i) + ((hash << 5) - hash);
+			}
+
+			hash = Math.abs(hash);
+
+			let color = "#" + ((1 << 24) | (hash & 0xFFFFFF)).toString(16).slice(1).padStart(6, '0');
+
+			return color;
+		}
+
+	</script>
+	<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</body>
+
+</html>
